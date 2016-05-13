@@ -1,20 +1,20 @@
 package main
 
 import (
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"sync"
 	"strings"
-	"encoding/csv"
+	"sync"
 )
 
 var (
-	quiet bool
+	quiet       bool
 	workerCount int
-	csvFile string
+	csvFile     string
 )
 
 func producer(jobs [][]string) <-chan []string {
@@ -56,8 +56,8 @@ func main() {
 	var jobs [][]string
 	cmd := flag.Arg(0)
 	if csvFile == "" {
-		for _, arg := range(flag.Args()[1:]) {
-			jobs = append(jobs, []string{ arg })
+		for _, arg := range flag.Args()[1:] {
+			jobs = append(jobs, []string{arg})
 		}
 	} else {
 		f, err := os.Open(csvFile)
@@ -72,9 +72,8 @@ func main() {
 			return
 		}
 	}
-	
-	queue := producer(jobs)
 
+	queue := producer(jobs)
 
 	var wg sync.WaitGroup
 	wg.Add(workerCount)
