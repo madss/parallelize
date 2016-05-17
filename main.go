@@ -12,7 +12,7 @@ import (
 )
 
 type Job struct {
-	Args []string
+	Args     []string
 	N, Total int
 }
 
@@ -26,7 +26,7 @@ func producer(jobs [][]string) <-chan Job {
 	ch := make(chan Job)
 	go func() {
 		for n, args := range jobs {
-			ch <- Job{ args, n, len(jobs) }
+			ch <- Job{args, n, len(jobs)}
 		}
 		close(ch)
 	}()
@@ -59,18 +59,24 @@ func main() {
 	}
 
 	var jobs [][]string
+	var err error
 	cmd := flag.Arg(0)
 	if csvFile == "" {
 		for _, arg := range flag.Args()[1:] {
 			jobs = append(jobs, []string{arg})
 		}
 	} else {
-		f, err := os.Open(csvFile)
-		if err != nil {
-			fmt.Println("Failed to open", csvFile, err)
-			return
+		var f io.Reader
+		if csvFile == "-" {
+			f = os.Stdin
+		} else {
+			f, err := os.Open(csvFile)
+			if err != nil {
+				fmt.Println("Failed to open", csvFile, err)
+				return
+			}
+			defer f.Close()
 		}
-		defer f.Close()
 		jobs, err = csv.NewReader(f).ReadAll()
 		if err != nil && err != io.EOF {
 			fmt.Println("Failed to parse", csvFile, err)
