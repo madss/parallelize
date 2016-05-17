@@ -11,30 +11,35 @@ import (
 	"sync"
 )
 
+type Job struct {
+	Args []string
+	N, Total int
+}
+
 var (
 	quiet       bool
 	workerCount int
 	csvFile     string
 )
 
-func producer(jobs [][]string) <-chan []string {
-	ch := make(chan []string)
+func producer(jobs [][]string) <-chan Job {
+	ch := make(chan Job)
 	go func() {
-		for _, args := range jobs {
-			ch <- args
+		for n, args := range jobs {
+			ch <- Job{ args, n, len(jobs) }
 		}
 		close(ch)
 	}()
 	return ch
 }
 
-func worker(id int, wg *sync.WaitGroup, cmd string, queue <-chan []string) {
-	for args := range queue {
+func worker(id int, wg *sync.WaitGroup, cmd string, queue <-chan Job) {
+	for job := range queue {
 		if !quiet {
-			fmt.Printf("[%d] %s %s\n", id, cmd, strings.Join(args, " "))
+			fmt.Printf("[%d] %d/%d: %s %s\n", id, job.N, job.Total, cmd, strings.Join(job.Args, " "))
 		}
-		if exec.Command(cmd, args...).Run() != nil && !quiet {
-			fmt.Printf("[%d] %s %s failed to execute\n", id, cmd, strings.Join(args, " "))
+		if exec.Command(cmd, job.Args...).Run() != nil && !quiet {
+			fmt.Printf("[%d] %d/%d: %s %s failed to execute\n", id, job.N, job.Total, cmd, strings.Join(job.Args, " "))
 		}
 	}
 	wg.Done()
